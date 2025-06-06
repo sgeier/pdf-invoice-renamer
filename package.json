@@ -1,0 +1,24 @@
+{
+  "name": "pdf-converter-renamer",
+  "version": "1.0.0",
+  "description": "Convert PDF invoices to images and rename them with month information",
+  "main": "convert-pdfs.js",
+  "scripts": {
+    "start": "node convert-pdfs.js",
+    "convert": "node convert-pdfs.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "openai": "^4.20.1",
+    "pdf-poppler": "^0.2.1"
+  },
+  "keywords": [
+    "pdf",
+    "converter",
+    "invoice",
+    "rename",
+    "organize"
+  ],
+  "author": "",
+  "license": "MIT"
+}
