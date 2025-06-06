@@ -45,8 +45,8 @@ The tool looks for common date indicators like "Invoice Date:", "Date:", "Datum:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/smart-pdf-invoice-organizer.git
-   cd smart-pdf-invoice-organizer
+   git clone https://github.com/sgeier/pdf-invoice-renamer.git
+   cd pdf-invoice-renamer
    ```
 
 2. **Install dependencies**
@@ -86,10 +86,10 @@ The tool looks for common date indicators like "Invoice Date:", "Date:", "Datum:
 node convert-pdfs.js "path/to/invoice/folder"
 ```
 
-### Batch Processing Multiple Directories
-Edit `convert.bat` with your API key and directories, then run:
+### Multiple Files in One Directory
+The script processes all PDF files in the specified directory:
 ```bash
-convert.bat
+node convert-pdfs.js "path/to/invoice/folder"
 ```
 
 ### Mode Options
@@ -115,9 +115,8 @@ node convert-pdfs.js "folder" rename '{"file1.pdf":"2024-03-15"}'
 ## 🏗️ Project Structure
 
 ```
-smart-pdf-invoice-organizer/
+pdf-invoice-renamer/
 ├── convert-pdfs.js          # Main script
-├── convert.bat              # Batch processing script  
 ├── setup-env.bat           # API key setup helper (Windows)
 ├── env.example             # Environment template
 ├── .env                    # Your API key (create from env.example)
@@ -186,7 +185,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 If you encounter any issues or have questions:
-1. Check the existing [Issues](https://github.com/yourusername/smart-pdf-invoice-organizer/issues)
+1. Check the existing [Issues](https://github.com/sgeier/pdf-invoice-renamer/issues)
 2. Create a new issue with details about your problem
 3. Include your OS, Node.js version, and error messages
 
