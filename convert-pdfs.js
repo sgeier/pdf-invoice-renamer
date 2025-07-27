@@ -172,7 +172,7 @@ Notes:
 }
 
 async function extractDataFromImages(convertedFiles) {
-    console.log('\n🤖 Analyzing images with OpenAI Vision');
+    console.log('\n🤖 Analyzing images with OpenAI GPT-4o-mini');
     console.log('='.repeat(50));
     
     if (!process.env.OPENAI_API_KEY) {
@@ -321,7 +321,7 @@ async function main() {
         console.log('='.repeat(50));
         console.log('This will:');
         console.log('1. Convert PDFs to images');
-        console.log('2. Analyze images with OpenAI Vision');
+        console.log('2. Analyze images with OpenAI GPT-4o-mini');
         console.log('3. Extract invoice dates and total amounts');
         console.log('4. Rename PDFs with date and price information');
         
@@ -333,7 +333,7 @@ async function main() {
             return;
         }
         
-        // Step 2: Extract dates using OpenAI Vision
+        // Step 2: Extract dates using OpenAI GPT-4o-mini
         const invoiceData = await extractDataFromImages(convertedFiles);
         
         if (Object.keys(invoiceData).length === 0) {

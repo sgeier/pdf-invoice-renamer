@@ -7,7 +7,7 @@ Transform your messy invoice files from cryptic names like `694c1fcd-70cb-4346-a
 ## ✨ Features
 
 - 🔄 **PDF to Image Conversion**: Converts first page of PDFs to high-quality JPEG images
-- 🤖 **AI-Powered Data Extraction**: Uses OpenAI GPT-4o-mini Vision to read and extract invoice dates AND total prices
+- 🤖 **AI-Powered Data Extraction**: Uses OpenAI GPT-4o-mini to read and extract invoice dates AND total prices
 - 💰 **Smart Price Detection**: Automatically identifies final total amounts including taxes and fees
 - 🏷️ **Enhanced Renaming**: Automatically renames files with `YYYY-MM-Month_€XX.XX_originalname.pdf` format
 - 📁 **Batch Processing**: Process entire directories of invoices at once
@@ -19,12 +19,12 @@ Transform your messy invoice files from cryptic names like `694c1fcd-70cb-4346-a
 ## 🖼️ Screenshots
 
 ### Before: Messy Invoice Filenames
-![Before Screenshot](screenshots/before-conversion.png)
-*Invoices with cryptic, unsearchable filenames*
+![Before Screenshot](screenshots/screen-before.jpg)
+*Invoices with cryptic, unsearchable filenames like `30334927000901.pdf`*
 
 ### After: Organized with Dates AND Prices
-![After Screenshot](screenshots/after-conversion.png)
-*Same invoices now organized chronologically with readable dates and total amounts*
+![After Screenshot](screenshots/screen-after.jpg)
+*Invoices now renamed for instant clarity: `2023-02-Feb_€48.97_30334927000901.pdf`*
 
 ### Terminal Output During Processing
 ![Terminal Screenshot](screenshots/terminal-output.png)
@@ -33,12 +33,14 @@ Transform your messy invoice files from cryptic names like `694c1fcd-70cb-4346-a
 ## 🚀 How It Works
 
 1. **Convert**: Transforms PDF first pages into JPEG images
-2. **Analyze**: Sends images to OpenAI Vision API to extract invoice dates AND total amounts
-3. **Rename**: Automatically renames PDFs with extracted date and price information
+2. **Analyze**: Sends images to OpenAI GPT-4o-mini to extract invoice dates AND total amounts
+3. **Rename**: Automatically renames PDFs with extracted date and price information in the format `YYYY-MM-Month_€XX.XX_originalfilename.pdf`
 
 The tool intelligently identifies:
 - **Invoice dates**: Billing/invoice dates (not due dates or other irrelevant dates)
 - **Total amounts**: Final amounts to be paid including all taxes and fees (not subtotals or line items)
+
+*Uses OpenAI GPT-4o-mini for both date and price extraction from images*
 
 ## 📋 Prerequisites
 
@@ -81,7 +83,7 @@ The tool intelligently identifies:
    ```bash
    setup-env.bat
    ```
-   This will guide you through creating the .env file interactively.
+   This will guide you through creating the .env file interactively, including entering your API key.
 
 ## 🎯 Usage
 
@@ -156,11 +158,15 @@ The script automatically creates an `images/` folder in each processed directory
 ### File Naming Convention
 `YYYY-MM-Month_€XX.XX_originalfilename.pdf`
 - `YYYY`: 4-digit year
-- `MM`: 2-digit month (01-12) 
+- `MM`: 2-digit month (01-12)
 - `Month`: 3-letter month abbreviation (Jan, Feb, Mar, etc.)
 - `€XX.XX`: Total amount with 2 decimal places
 - If only date is found: `YYYY-MM-Month_originalfilename.pdf`
 - If only price is found: `€XX.XX_originalfilename.pdf`
+
+**Example:**
+- Before: `30334927000901.pdf`
+- After:  `2023-02-Feb_€48.97_30334927000901.pdf`
 
 ## 💡 Use Cases
 
@@ -216,3 +222,6 @@ If you encounter any issues or have questions:
 ---
 
 **⭐ Star this repository if it helped you organize your invoices with dates AND prices!** 
+
+**Notes:**
+- This project uses [OpenAI GPT-4o-mini](https://platform.openai.com/docs/models/gpt-4o) for image understanding and extraction. Filenames always include both the month and the price for maximum searchability and clarity. 
