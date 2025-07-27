@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Convert PDF invoices to images and rename them with month information",
   "main": "convert-pdfs.js",
+  "author": "sgeier",
   "scripts": {
     "start": "node convert-pdfs.js",
     "convert": "node convert-pdfs.js"
@@ -19,6 +20,5 @@
     "rename",
     "organize"
   ],
-  "author": "",
   "license": "MIT"
 }

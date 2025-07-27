@@ -93,7 +93,22 @@ async function analyzeImageWithOpenAI(imagePath) {
                     content: [
                         {
                             type: "text",
-                            text: "This is an invoice image. Please analyze it and find the invoice date. Look for terms like 'Invoice Date:', 'Date:', 'Datum:', 'Rechnungsdatum:', or any date that appears to be the invoice/billing date (not due date or other dates). Return ONLY the date in YYYY-MM-DD format, nothing else. If you find multiple dates, return the one that appears to be the invoice/billing date."
+                            text: `This is an invoice image. Please analyze it and extract two pieces of information:
+
+1. INVOICE DATE: Find the date when this invoice was issued or created. This should be the billing/invoice date, not a due date or delivery date.
+
+2. TOTAL AMOUNT: Find the final total amount that needs to be paid, including all taxes and fees. This should be the main total amount, not subtotals or individual line items.
+
+Return your response in this JSON format:
+{
+  "date": "YYYY-MM-DD",
+  "total": "XX.XX"
+}
+
+Notes:
+- For date: Return only in YYYY-MM-DD format, or null if not found
+- For total: Return only the numeric value with 2 decimal places (no currency symbols), or null if not found
+- Focus on the most prominent total amount on the invoice`
                         },
                         {
                             type: "image_url",
@@ -104,32 +119,60 @@ async function analyzeImageWithOpenAI(imagePath) {
                     ]
                 }
             ],
-            max_tokens: 50
+            max_tokens: 100,
+            response_format: { type: "json_object" }
         });
         
-        const extractedDate = response.choices[0]?.message?.content?.trim();
+        const responseText = response.choices[0]?.message?.content?.trim();
         
-        // Validate the date format
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (dateRegex.test(extractedDate)) {
-            const testDate = new Date(extractedDate);
-            if (testDate instanceof Date && !isNaN(testDate)) {
-                console.log(`✅ Extracted date: ${extractedDate}`);
-                return extractedDate;
+        try {
+            const parsedResponse = JSON.parse(responseText);
+            
+            // Validate the response structure
+            if (typeof parsedResponse === 'object' && parsedResponse !== null) {
+                const result = {
+                    date: null,
+                    total: null
+                };
+                
+                // Validate date
+                if (parsedResponse.date && typeof parsedResponse.date === 'string') {
+                    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                    if (dateRegex.test(parsedResponse.date)) {
+                        const testDate = new Date(parsedResponse.date);
+                        if (testDate instanceof Date && !isNaN(testDate)) {
+                            result.date = parsedResponse.date;
+                        }
+                    }
+                }
+                
+                // Validate total
+                if (parsedResponse.total && (typeof parsedResponse.total === 'string' || typeof parsedResponse.total === 'number')) {
+                    const totalStr = String(parsedResponse.total);
+                    const totalRegex = /^\d+\.?\d*$/;
+                    if (totalRegex.test(totalStr) && !isNaN(parseFloat(totalStr))) {
+                        result.total = parseFloat(totalStr).toFixed(2);
+                    }
+                }
+                
+                console.log(`✅ Extracted - Date: ${result.date || 'N/A'}, Total: ${result.total || 'N/A'}`);
+                return result;
             }
+        } catch (parseError) {
+            console.log(`⚠️ Could not parse JSON response: ${responseText}`);
         }
         
-        console.log(`⚠️  Could not extract valid date from response: ${extractedDate}`);
-        return null;
+        console.log(`⚠️ Could not extract valid data from response: ${responseText}`);
+        return { date: null, total: null };
         
     } catch (error) {
         console.error(`❌ Error analyzing image ${imagePath}:`, error.message);
-        return null;
+        return { date: null, total: null };
     }
 }
 
-async function extractDatesFromImages(convertedFiles) {
-    console.log('\n🤖 Analyzing images with OpenAI Vision');
+async function extractDataFromImages(convertedFiles) {
+    console.log('\n🤖 Analyzing images with OpenAI GPT-4o-mini');
     console.log('='.repeat(50));
     
     if (!process.env.OPENAI_API_KEY) {
@@ -141,30 +184,30 @@ async function extractDatesFromImages(convertedFiles) {
         return {};
     }
     
-    const invoiceDates = {};
+    const invoiceData = {};
     
     for (const fileInfo of convertedFiles) {
-        const extractedDate = await analyzeImageWithOpenAI(fileInfo.imagePath);
+        const extractedData = await analyzeImageWithOpenAI(fileInfo.imagePath);
         
-        if (extractedDate) {
-            invoiceDates[fileInfo.pdfFile] = extractedDate;
-            console.log(`📝 ${fileInfo.pdfFile} → ${extractedDate}`);
+        if (extractedData.date || extractedData.total) {
+            invoiceData[fileInfo.pdfFile] = extractedData;
+            console.log(`📝 ${fileInfo.pdfFile} → Date: ${extractedData.date || 'N/A'}, Total: ${extractedData.total || 'N/A'}`);
         } else {
-            console.log(`❌ Failed to extract date from ${fileInfo.pdfFile}`);
+            console.log(`❌ Failed to extract data from ${fileInfo.pdfFile}`);
         }
         
         // Small delay to respect API rate limits
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    return invoiceDates;
+    return invoiceData;
 }
 
-async function renamePDFsWithDates(folderPath, invoiceDates) {
+async function renamePDFsWithData(folderPath, invoiceData) {
     console.log('\n🏷️  RENAMING PDFs');
     console.log('='.repeat(50));
     
-    for (const [originalName, dateStr] of Object.entries(invoiceDates)) {
+    for (const [originalName, data] of Object.entries(invoiceData)) {
         try {
             const originalPath = path.join(folderPath, originalName);
             
@@ -174,15 +217,33 @@ async function renamePDFsWithDates(folderPath, invoiceDates) {
                 continue;
             }
             
-            // Parse the date
-            const date = new Date(dateStr);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const monthName = monthNames[month];
-            
-            // Create new filename with month
+            // Start building the new filename
             const baseName = path.parse(originalName).name;
-            const newName = `${year}-${month}-${monthName}_${baseName}.pdf`;
+            let newName = '';
+            
+            // Add date prefix if available
+            if (data.date) {
+                const date = new Date(data.date);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const monthName = monthNames[month];
+                newName += `${year}-${month}-${monthName}_`;
+            }
+            
+            // Add total price if available
+            if (data.total) {
+                newName += `€${data.total}_`;
+            }
+            
+            // Add original base name
+            newName += `${baseName}.pdf`;
+            
+            // If no data was extracted, keep original name
+            if (!data.date && !data.total) {
+                console.log(`⚠️  No data extracted for ${originalName}, keeping original name`);
+                continue;
+            }
+            
             const newPath = path.join(folderPath, newName);
             
             // Rename the file
@@ -243,12 +304,12 @@ async function main() {
         }
         
         try {
-            const invoiceDates = JSON.parse(datesArg);
-            await renamePDFsWithDates(folderPath, invoiceDates);
+            const invoiceData = JSON.parse(datesArg);
+            await renamePDFsWithData(folderPath, invoiceData);
             
             console.log('\n🎉 RENAMING COMPLETE!');
             console.log('='.repeat(50));
-            console.log('✅ PDFs renamed with month information');
+            console.log('✅ PDFs renamed with date and price information');
             
         } catch (error) {
             console.error('❌ Error parsing dates:', error.message);
@@ -260,9 +321,9 @@ async function main() {
         console.log('='.repeat(50));
         console.log('This will:');
         console.log('1. Convert PDFs to images');
-        console.log('2. Analyze images with OpenAI Vision');
-        console.log('3. Extract invoice dates');
-        console.log('4. Rename PDFs with month information');
+        console.log('2. Analyze images with OpenAI GPT-4o-mini');
+        console.log('3. Extract invoice dates and total amounts');
+        console.log('4. Rename PDFs with date and price information');
         
         // Step 1: Convert PDFs to images
         const convertedFiles = await convertPDFsToImages(folderPath);
@@ -272,22 +333,22 @@ async function main() {
             return;
         }
         
-        // Step 2: Extract dates using OpenAI Vision
-        const invoiceDates = await extractDatesFromImages(convertedFiles);
+        // Step 2: Extract dates using OpenAI GPT-4o-mini
+        const invoiceData = await extractDataFromImages(convertedFiles);
         
-        if (Object.keys(invoiceDates).length === 0) {
-            console.log('❌ No dates were extracted. Check your OpenAI API key and try again.');
+        if (Object.keys(invoiceData).length === 0) {
+            console.log('❌ No data was extracted. Check your OpenAI API key and try again.');
             return;
         }
         
         // Step 3: Rename PDFs with extracted dates
-        await renamePDFsWithDates(folderPath, invoiceDates);
+        await renamePDFsWithData(folderPath, invoiceData);
         
         console.log('\n🎉 ALL DONE!');
         console.log('='.repeat(50));
         console.log('✅ PDFs converted to images');
-        console.log('✅ Dates extracted with AI');
-        console.log('✅ PDFs renamed with month information');
+        console.log('✅ Dates and totals extracted with AI');
+        console.log('✅ PDFs renamed with date and price information');
         console.log(`📁 Check your folder: ${folderPath}`);
         
     }
@@ -302,7 +363,7 @@ if (require.main === module) {
 module.exports = {
     convertPDFsToImages,
     analyzeImageWithOpenAI,
-    extractDatesFromImages,
-    renamePDFsWithDates,
+    extractDataFromImages,
+    renamePDFsWithData,
     monthNames
 }; 
