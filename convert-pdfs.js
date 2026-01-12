@@ -99,7 +99,11 @@ async function analyzeImageWithOpenAI(imagePath) {
 
 2. VENDOR/COMPANY: Find the company or vendor name that issued this invoice. This is typically at the top of the invoice or in the "from" section.
 
-3. TOTAL AMOUNT: Find the final total amount that needs to be paid, including all taxes and fees. This should be the main total amount, not subtotals or individual line items.
+3. TOTAL AMOUNT: Find the FINAL GROSS TOTAL that was actually paid. This is the amount AFTER tax has been added.
+   - Look for labels like: "Total", "Grand Total", "Amount Due", "Total (incl. VAT)", "EUR [amount]" at the bottom
+   - DO NOT use: "Subtotal", "Net", "Price", "Amount before tax", or individual line item prices
+   - The correct amount is typically the LARGEST number at the bottom of the invoice
+   - If there's a "Tax" line, the total should be AFTER adding that tax
 
 Return your response in this JSON format:
 {
@@ -111,8 +115,8 @@ Return your response in this JSON format:
 Notes:
 - For date: Return only in YYYY-MM-DD format, or null if not found
 - For vendor: Return the company/brand name (e.g., "Anthropic", "Vodafone", "OpenAI"), clean and simple, or null if not found
-- For total: Return only the numeric value with 2 decimal places (no currency symbols), or null if not found
-- Focus on the most prominent total amount on the invoice`
+- For total: Return ONLY the final gross total (the amount that was actually charged/paid), with 2 decimal places, no currency symbols
+- CRITICAL: If you see both a subtotal and a total with tax, you MUST return the total WITH tax, not the subtotal`
                         },
                         {
                             type: "image_url",
