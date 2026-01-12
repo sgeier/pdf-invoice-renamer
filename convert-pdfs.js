@@ -93,20 +93,24 @@ async function analyzeImageWithOpenAI(imagePath) {
                     content: [
                         {
                             type: "text",
-                            text: `This is an invoice image. Please analyze it and extract two pieces of information:
+                            text: `This is an invoice image. Please analyze it and extract three pieces of information:
 
 1. INVOICE DATE: Find the date when this invoice was issued or created. This should be the billing/invoice date, not a due date or delivery date.
 
-2. TOTAL AMOUNT: Find the final total amount that needs to be paid, including all taxes and fees. This should be the main total amount, not subtotals or individual line items.
+2. VENDOR/COMPANY: Find the company or vendor name that issued this invoice. This is typically at the top of the invoice or in the "from" section.
+
+3. TOTAL AMOUNT: Find the final total amount that needs to be paid, including all taxes and fees. This should be the main total amount, not subtotals or individual line items.
 
 Return your response in this JSON format:
 {
   "date": "YYYY-MM-DD",
+  "vendor": "CompanyName",
   "total": "XX.XX"
 }
 
 Notes:
 - For date: Return only in YYYY-MM-DD format, or null if not found
+- For vendor: Return the company/brand name (e.g., "Anthropic", "Vodafone", "OpenAI"), clean and simple, or null if not found
 - For total: Return only the numeric value with 2 decimal places (no currency symbols), or null if not found
 - Focus on the most prominent total amount on the invoice`
                         },
@@ -132,6 +136,7 @@ Notes:
             if (typeof parsedResponse === 'object' && parsedResponse !== null) {
                 const result = {
                     date: null,
+                    vendor: null,
                     total: null
                 };
                 
@@ -146,6 +151,18 @@ Notes:
                     }
                 }
                 
+                // Validate vendor
+                if (parsedResponse.vendor && typeof parsedResponse.vendor === 'string') {
+                    // Clean vendor name: remove special chars, limit length
+                    const cleanVendor = parsedResponse.vendor
+                        .replace(/[^a-zA-Z0-9\s-]/g, '')
+                        .replace(/\s+/g, '-')
+                        .substring(0, 30);
+                    if (cleanVendor.length > 0) {
+                        result.vendor = cleanVendor;
+                    }
+                }
+                
                 // Validate total
                 if (parsedResponse.total && (typeof parsedResponse.total === 'string' || typeof parsedResponse.total === 'number')) {
                     const totalStr = String(parsedResponse.total);
@@ -155,7 +172,7 @@ Notes:
                     }
                 }
                 
-                console.log(`✅ Extracted - Date: ${result.date || 'N/A'}, Total: ${result.total || 'N/A'}`);
+                console.log(`✅ Extracted - Date: ${result.date || 'N/A'}, Vendor: ${result.vendor || 'N/A'}, Total: ${result.total || 'N/A'}`);
                 return result;
             }
         } catch (parseError) {
@@ -163,11 +180,11 @@ Notes:
         }
         
         console.log(`⚠️ Could not extract valid data from response: ${responseText}`);
-        return { date: null, total: null };
+        return { date: null, vendor: null, total: null };
         
     } catch (error) {
         console.error(`❌ Error analyzing image ${imagePath}:`, error.message);
-        return { date: null, total: null };
+        return { date: null, vendor: null, total: null };
     }
 }
 
@@ -189,9 +206,9 @@ async function extractDataFromImages(convertedFiles) {
     for (const fileInfo of convertedFiles) {
         const extractedData = await analyzeImageWithOpenAI(fileInfo.imagePath);
         
-        if (extractedData.date || extractedData.total) {
+        if (extractedData.date || extractedData.vendor || extractedData.total) {
             invoiceData[fileInfo.pdfFile] = extractedData;
-            console.log(`📝 ${fileInfo.pdfFile} → Date: ${extractedData.date || 'N/A'}, Total: ${extractedData.total || 'N/A'}`);
+            console.log(`📝 ${fileInfo.pdfFile} → Date: ${extractedData.date || 'N/A'}, Vendor: ${extractedData.vendor || 'N/A'}, Total: ${extractedData.total || 'N/A'}`);
         } else {
             console.log(`❌ Failed to extract data from ${fileInfo.pdfFile}`);
         }
@@ -230,6 +247,11 @@ async function renamePDFsWithData(folderPath, invoiceData) {
                 newName += `${year}-${month}-${monthName}_`;
             }
             
+            // Add vendor name if available
+            if (data.vendor) {
+                newName += `${data.vendor}_`;
+            }
+            
             // Add total price if available
             if (data.total) {
                 newName += `€${data.total}_`;
@@ -239,7 +261,7 @@ async function renamePDFsWithData(folderPath, invoiceData) {
             newName += `${baseName}.pdf`;
             
             // If no data was extracted, keep original name
-            if (!data.date && !data.total) {
+            if (!data.date && !data.vendor && !data.total) {
                 console.log(`⚠️  No data extracted for ${originalName}, keeping original name`);
                 continue;
             }

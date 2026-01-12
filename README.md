@@ -7,14 +7,16 @@ Transform your messy invoice files from cryptic names like `694c1fcd-70cb-4346-a
 ## ✨ Features
 
 - 🔄 **PDF to Image Conversion**: Converts first page of PDFs to high-quality JPEG images
-- 🤖 **AI-Powered Data Extraction**: Uses OpenAI GPT-4o-mini to read and extract invoice dates AND total prices
+- 🤖 **AI-Powered Data Extraction**: Uses OpenAI GPT-4o-mini to extract invoice dates, vendors, AND total prices
+- 🏢 **Vendor Detection**: Automatically identifies the company/vendor that issued the invoice
 - 💰 **Smart Price Detection**: Automatically identifies final total amounts including taxes and fees
-- 🏷️ **Enhanced Renaming**: Automatically renames files with `YYYY-MM-Month_€XX.XX_originalname.pdf` format
+- 🏷️ **Enhanced Renaming**: Automatically renames files with `YYYY-MM-Month_VendorName_€XX.XX_originalname.pdf` format
 - 📁 **Batch Processing**: Process entire directories of invoices at once
+- 📂 **Auto-Organization**: Organize renamed invoices into year/month/vendor folder structure
 - 🌍 **Multi-language Support**: Works with invoices in multiple languages (English, German, etc.)
 - ⚡ **Fast & Reliable**: Processes dozens of files efficiently with rate limiting
 - 💰 **Cost-Effective**: Uses GPT-4o-mini for affordable AI processing
-- 🔍 **Easy Searching**: Find invoices by price range, date, or month instantly
+- 🔍 **Easy Searching**: Find invoices by vendor, price range, date, or month instantly
 
 ## 🖼️ Screenshots
 
@@ -33,11 +35,13 @@ Transform your messy invoice files from cryptic names like `694c1fcd-70cb-4346-a
 ## 🚀 How It Works
 
 1. **Convert**: Transforms PDF first pages into JPEG images
-2. **Analyze**: Sends images to OpenAI GPT-4o-mini to extract invoice dates AND total amounts
-3. **Rename**: Automatically renames PDFs with extracted date and price information in the format `YYYY-MM-Month_€XX.XX_originalfilename.pdf`
+2. **Analyze**: Sends images to OpenAI GPT-4o-mini to extract invoice dates, vendors, AND total amounts
+3. **Rename**: Automatically renames PDFs with extracted information in the format `YYYY-MM-Month_VendorName_€XX.XX_originalfilename.pdf`
+4. **Organize** (optional): Sort renamed invoices into structured folders: `invoices/year/month/vendor/`
 
 The tool intelligently identifies:
 - **Invoice dates**: Billing/invoice dates (not due dates or other irrelevant dates)
+- **Vendor names**: Company or brand that issued the invoice (e.g., "Anthropic", "Vodafone", "OpenAI")
 - **Total amounts**: Final amounts to be paid including all taxes and fees (not subtotals or line items)
 
 *Uses OpenAI GPT-4o-mini for both date and price extraction from images*
@@ -87,59 +91,102 @@ The tool intelligently identifies:
 
 ## 🎯 Usage
 
-### Single Directory Processing
+### Step 1: Parse and Rename Invoices
+
+Process all PDF files in a directory:
 ```bash
 node convert-pdfs.js "path/to/invoice/folder"
 ```
 
-### Multiple Files in One Directory
-The script processes all PDF files in the specified directory:
+This will:
+- Convert PDFs to images
+- Extract date, vendor, and total amount
+- Rename files to: `YYYY-MM-Month_VendorName_€XX.XX_originalname.pdf`
+
+### Step 2: Organize Into Folders (Optional)
+
+After renaming, organize invoices into structured folders:
 ```bash
-node convert-pdfs.js "path/to/invoice/folder"
+node organize-invoices.js "path/to/invoice/folder"
 ```
 
-### Mode Options
+This creates the structure:
+```
+invoices/
+├── 2025/
+│   ├── 10/
+│   │   ├── Anthropic/
+│   │   │   └── 2025-10-Oct_Anthropic_€142.50_invoice.pdf
+│   │   └── Vodafone/
+│   │       └── 2025-10-Oct_Vodafone_€49.99_bill.pdf
+│   └── 11/
+│       └── OpenAI/
+│           └── 2025-11-Nov_OpenAI_€20.00_receipt.pdf
+```
+
+### Advanced: Specify Custom Output Folder
 ```bash
-# Full automatic processing (default) - extracts dates AND prices
+node organize-invoices.js "./downloads" "./my-invoices"
+```
+
+### Mode Options (convert-pdfs.js)
+```bash
+# Full automatic processing (default) - extracts dates, vendors, AND prices
 node convert-pdfs.js "folder" auto
 
 # Convert to images only
 node convert-pdfs.js "folder" convert
 
 # Rename with provided data (legacy mode)
-node convert-pdfs.js "folder" rename '{"file1.pdf":{"date":"2024-03-15","total":"29.99"}}'
+node convert-pdfs.js "folder" rename '{"file1.pdf":{"date":"2024-03-15","vendor":"Anthropic","total":"29.99"}}'
 ```
 
 ## 📊 Example Results
 
-| Original Filename | Extracted Date | Extracted Price | New Filename |
-|-------------------|----------------|------------------|--------------|
-| `694c1fcd-70cb-4346-a23d-1ab6bdcdd0fd.pdf` | July 2, 2023 | €29.99 | `2023-07-Jul_€29.99_694c1fcd-70cb-4346-a23d-1ab6bdcdd0fd.pdf` |
-| `invoice-04029-30703330.pdf` | March 15, 2024 | €156.80 | `2024-03-Mar_€156.80_invoice-04029-30703330.pdf` |
-| `Made_With_AI_164359013.pdf` | January 8, 2023 | €11.99 | `2023-01-Jan_€11.99_Made_With_AI_164359013.pdf` |
+| Original Filename | Date | Vendor | Price | New Filename |
+|-------------------|------|--------|-------|--------------|
+| `694c1fcd-70cb-4346-a23d-1ab6bdcdd0fd.pdf` | July 2, 2023 | Midjourney | €29.99 | `2023-07-Jul_Midjourney_€29.99_694c1fcd-70cb-4346-a23d-1ab6bdcdd0fd.pdf` |
+| `invoice-04029-30703330.pdf` | March 15, 2024 | Anthropic | €156.80 | `2024-03-Mar_Anthropic_€156.80_invoice-04029-30703330.pdf` |
+| `Made_With_AI_164359013.pdf` | January 8, 2023 | OpenAI | €11.99 | `2023-01-Jan_OpenAI_€11.99_Made_With_AI_164359013.pdf` |
 
 ### Real-World Example from Google Invoices:
 ```
 Before: "1079562573546578-33.pdf"
-After:  "2022-07-Jul_€11.99_1079562573546578-33.pdf"
+After:  "2022-07-Jul_Google_€11.99_1079562573546578-33.pdf"
 
 Before: "619935639187-228.pdf" 
-After:  "2022-03-Mar_€36.99_619935639187-228.pdf"
+After:  "2022-03-Mar_Google_€36.99_619935639187-228.pdf"
+```
+
+### After Organization:
+```
+invoices/
+├── 2022/
+│   ├── 03/
+│   │   └── Google/
+│   │       └── 2022-03-Mar_Google_€36.99_619935639187-228.pdf
+│   └── 07/
+│       └── Google/
+│           └── 2022-07-Jul_Google_€11.99_1079562573546578-33.pdf
 ```
 
 ## 🔍 Search Benefits
 
-With the new naming format, you can easily:
-- **Find expensive invoices**: Search for "€1" to find invoices over € 100
+With the new naming format and folder structure, you can easily:
+- **Find by vendor**: Search for "Anthropic" to find all invoices from that company
+- **Find expensive invoices**: Search for "€1" to find invoices over €100
 - **Find by price range**: Search "€2.99" to find cheap subscriptions
+- **Browse by date**: Navigate to specific year/month folders
 - **Sort by amount**: Files naturally sort by date, but you can also filter by price
-- **Track spending**: Quickly see how much you spent in any given month
+- **Track spending**: Quickly see how much you spent with each vendor per month
+- **Tax preparation**: Easily gather all invoices from a specific vendor or time period
 
 ## 🏗️ Project Structure
 
 ```
 pdf-invoice-renamer/
-├── convert-pdfs.js          # Main script with date & price extraction
+├── convert-pdfs.js          # Main script: extract date/vendor/price & rename
+├── organize-invoices.js     # Organization script: sort into folders
 ├── setup-env.bat           # API key setup helper (Windows)
 ├── env.example             # Environment template
 ├── .env                    # Your API key (create from env.example)
@@ -156,17 +203,26 @@ The script automatically creates an `images/` folder in each processed directory
 **Prices**: The AI finds the final total amount including taxes and fees, ignoring subtotals
 
 ### File Naming Convention
-`YYYY-MM-Month_€XX.XX_originalfilename.pdf`
+`YYYY-MM-Month_VendorName_€XX.XX_originalfilename.pdf`
 - `YYYY`: 4-digit year
 - `MM`: 2-digit month (01-12)
 - `Month`: 3-letter month abbreviation (Jan, Feb, Mar, etc.)
+- `VendorName`: Company/brand name (cleaned, max 30 chars)
 - `€XX.XX`: Total amount with 2 decimal places
-- If only date is found: `YYYY-MM-Month_originalfilename.pdf`
-- If only price is found: `€XX.XX_originalfilename.pdf`
+- Partial formats supported if some data is missing
 
-**Example:**
+**Examples:**
 - Before: `30334927000901.pdf`
-- After:  `2023-02-Feb_€48.97_30334927000901.pdf`
+- After:  `2023-02-Feb_Vodafone_€48.97_30334927000901.pdf`
+
+**Folder Organization:**
+```
+invoices/
+└── YYYY/           (year)
+    └── MM/         (month)
+        └── Vendor/ (company name)
+            └── [invoice files]
+```
 
 ## 💡 Use Cases
 
